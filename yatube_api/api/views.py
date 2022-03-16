@@ -1,10 +1,15 @@
-from rest_framework import viewsets, pagination, filters
+from rest_framework import viewsets, pagination, filters, mixins
 from rest_framework.generics import get_object_or_404
 
-from posts.models import Post, Comment, Group, User
+from posts.models import Post, Group, User
 from .serializers import PostSerializer, CommentSerializer
 from .serializers import GroupSerializer, FollowSerializer
 from .permissions import IsOwnerOrReadOnly
+
+
+class CustomViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+                    viewsets.GenericViewSet):
+    pass
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -23,7 +28,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         post = get_object_or_404(Post, pk=self.kwargs.get('post_id'))
-        return Comment.objects.filter(post=post)
+        return post.comments.all()
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, pk=self.kwargs.get('post_id'))
@@ -36,7 +41,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsOwnerOrReadOnly,)
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(CustomViewSet):
     serializer_class = FollowSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('following__username',)
